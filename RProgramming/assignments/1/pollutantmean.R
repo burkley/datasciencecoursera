@@ -1,12 +1,3 @@
-# Write a function named 'pollutantmean' that calculates the mean of a pollutant
-# (sulfate or nitrate) across a specified list of monitors. The function
-# 'pollutantmean' takes three arguments: 'directory', 'pollutant', and 'id'.
-#
-# Given a vector monitor ID numbers, 'pollutantmean' reads that monitors'
-# particulate matter data from the directory specified in the 'directory'
-# argument and returns the mean of the pollutant across all of the monitors,
-# ignoring any missing values coded as NA.
-
 pollutantmean <- function(directory, pollutant, id = 1:332) {
         ## 'directory' is a character vector of length 1 indicating
         ## the location of the CSV files
@@ -17,42 +8,36 @@ pollutantmean <- function(directory, pollutant, id = 1:332) {
         
         ## 'id' is an integer vector indicating the monitor ID numbers
         ## to be used
-        aggregate = numeric()
-        for(i in id) {
-                filename_function <- if(i < 10) {
-                        make_filename_function(2)
-                } else if (i < 100) {
-                        make_filename_function(1)
-                } else {
-                        make_filename_function(0)
-                }
-                file_name <- paste(directory, "/", filename_function(i), ".csv", sep="")
-                print(file_name)
-                data_frame <- read.csv(file_name)
-                n <- !is.na(data_frame[,pollutant])
-                aggregate <- c(aggregate, data_frame[n,pollutant])
-        }
         
         ## Return the mean of the pollutant across all monitors list
         ## in the 'id' vector (ignoring NA values)
         ## NOTE: Do not round the result!
-        mean(aggregate)
+        
+        aggregate <- vector()
+        for (i in id) {
+                # first must create the filenames we need.  The "ids" that are passed in
+                # to this function don't automatically translate to valid file names.
+                # e.g. we may get an id = 1, but the file name is "001.csv"
+                #
+                # also must concatenate the directory with 1) the path seperator and 
+                # 2) the file name to get a valid path to the file to be opened
+                filename <- paste(directory, "/", sprintf("%03d", i), ".csv", sep="")
+                #print(filename)
+                
+                # next we open each file with read.csv()
+                my_dataframe <- read.csv(filename)
+                #print(class(my_dataframe))
+                
+                # now that we have our dataframe, we must subset the column
+                # indicated by the "pollutant" argument, which we know will be
+                # either "sulfate" or "nitrate"
+                #
+                # we also need to omit the NAs
+                my_pollutant <- my_dataframe[,pollutant]
+                #print(my_pollutant)
+                aggregate <- c(aggregate, my_pollutant)
+        }
+        mean(aggregate, na.rm=TRUE)
 }
 
-# This function will create a function that will create a filename from an
-# identifier.
-# The function that is created will optionally prepend the identifier with 0's
-# to match the filename patterns of the programming project.
-make_filename_function <- function(num_chars_2_pad) {
-        f <- function(n) {
-                temp <- character(num_chars_2_pad+1)
-                if(num_chars_2_pad>0) {
-                        for(i in seq_along(1:num_chars_2_pad)) {
-                                temp[i] <- "0"
-                        }
-                }
-                temp[num_chars_2_pad+1] <- as.character(n)
-                paste(temp, collapse="")
-        }
-        f
-}
+
